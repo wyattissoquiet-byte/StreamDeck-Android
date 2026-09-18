@@ -65,7 +65,7 @@ Optimized for automotive head units, tablets, and phones.
 - USB-OTG cable or dedicated vehicle USB port
 
 ### Installation
-1. Download the latest **`StreamDeck-v1.0.1.apk`** from the [Releases](https://github.com/wyattissoquiet-byte/StreamDeck-Android/releases/latest) page.
+1. Download the latest **`StreamDeck-v1.0.2.apk`** from the [Releases](https://github.com/wyattissoquiet-byte/StreamDeck-Android/releases/latest) page.
 2. Install on your Android device or car stereo head unit.
 3. Plug in your 15-key Elgato Stream Deck via USB.
 4. Grant the USB permission prompt (select *"Always open Stream Deck when this USB device is connected"*).
