@@ -44,6 +44,7 @@ class StreamDeckService : Service() {
     private var desktopConfigServer: com.example.streamdeckapp.server.DesktopConfigServer? = null
     val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var stateCheckJob: Job? = null
+    private var scanJob: Job? = null
     private var usbReceiver: BroadcastReceiver? = null
     private var isForegroundActive = false
 
@@ -55,7 +56,55 @@ class StreamDeckService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         promoteToForegroundServiceSafe()
+
+        val action = intent?.action
+        if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+            val device = getUsbDeviceFromIntent(intent)
+            if (device != null && device.vendorId == StreamDeckManager.ELGATO_VENDOR_ID) {
+                serviceScope.launch(Dispatchers.IO) {
+                    val claimed = streamDeckManager.claimAndInitialize(device)
+                    if (claimed) {
+                        promoteToForegroundServiceSafe()
+                        refreshDisplays()
+                    }
+                }
+            } else {
+                autoScanAndConnectWithRetry()
+            }
+        } else {
+            // Auto scan whenever started/restarted
+            autoScanAndConnectWithRetry()
+        }
+
         return START_STICKY
+    }
+
+    fun autoScanAndConnectWithRetry() {
+        scanJob?.cancel()
+        scanJob = serviceScope.launch(Dispatchers.IO) {
+            // If already connected, just refresh displays
+            if (streamDeckManager.isConnected.value) {
+                refreshDisplays()
+                return@launch
+            }
+
+            // Retry sequence to catch delayed USB host enumeration (e.g. on car stereo boots)
+            val delays = listOf(0L, 800L, 1500L, 3000L, 5000L)
+            for (d in delays) {
+                if (d > 0) delay(d)
+                if (streamDeckManager.isConnected.value) {
+                    refreshDisplays()
+                    break
+                }
+                val connected = streamDeckManager.connectDevice()
+                if (connected) {
+                    promoteToForegroundServiceSafe()
+                    refreshDisplays()
+                    Log.d("StreamDeckService", "Auto-scan successfully connected to Stream Deck!")
+                    break
+                }
+            }
+        }
     }
 
     override fun onCreate() {
@@ -108,13 +157,7 @@ class StreamDeckService : Service() {
 
         registerUsbReceiver()
 
-        serviceScope.launch(Dispatchers.IO) {
-            val connected = streamDeckManager.connectDevice()
-            if (connected) {
-                promoteToForegroundServiceSafe()
-                refreshDisplays()
-            }
-        }
+        autoScanAndConnectWithRetry()
 
         startStateMonitoring()
 

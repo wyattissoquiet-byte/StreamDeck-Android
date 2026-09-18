@@ -46,7 +46,6 @@ class StreamDeckManager(
     }
 
     fun connectDevice(): Boolean {
-        if (currentDevice != null) return true
         val manager = usbManager ?: return false
 
         val deviceList = try {
@@ -58,9 +57,16 @@ class StreamDeckManager(
 
         val streamDeckUsb = deviceList.values.find { it.vendorId == ELGATO_VENDOR_ID }
         if (streamDeckUsb == null) {
+            if (currentDevice != null) {
+                disconnect()
+            }
             _isConnected.value = false
             _connectedDeviceName.value = "Disconnected"
             return false
+        }
+
+        if (currentDevice != null && _isConnected.value) {
+            return true
         }
 
         return claimAndInitialize(streamDeckUsb)

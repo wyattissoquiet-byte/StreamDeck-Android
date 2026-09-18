@@ -60,6 +60,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 s.serverUrl.collect { serverUrl.value = it }
             }
 
+            s.autoScanAndConnectWithRetry()
             s.refreshDisplays()
         }
 
@@ -216,8 +217,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun connectUsbDevice() {
         viewModelScope.launch(Dispatchers.IO) {
-            service?.streamDeckManager?.connectDevice()
-            service?.refreshDisplays()
+            val s = service
+            if (s != null) {
+                s.autoScanAndConnectWithRetry()
+            } else {
+                startAndBindService()
+            }
         }
     }
 

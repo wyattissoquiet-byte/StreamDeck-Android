@@ -1,7 +1,10 @@
 package com.example.streamdeckapp
 
+import android.content.Intent
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -20,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.streamdeckapp.model.DeckAction
+import com.example.streamdeckapp.service.StreamDeckService
 import com.example.streamdeckapp.ui.ActionEditorBottomSheet
 import com.example.streamdeckapp.ui.MainViewModel
 import com.example.streamdeckapp.ui.PageManagerScreen
@@ -29,18 +33,56 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    private fun handleUsbAttachedIntent(intent: Intent?): Boolean {
+        if (intent?.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+            val serviceIntent = Intent(this, StreamDeckService::class.java).apply {
+                action = UsbManager.ACTION_USB_DEVICE_ATTACHED
+                intent.extras?.let { putExtras(it) }
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    startService(serviceIntent)
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed starting service for USB attached", e)
+            }
+            viewModel.connectUsbDevice()
+            moveTaskToBack(true)
+            finish()
+            return true
+        }
+        return false
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (handleUsbAttachedIntent(intent)) {
+            return
+        }
+        viewModel.connectUsbDevice()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Automatically refresh to see if a deck is connected when opened/resumed
+        viewModel.connectUsbDevice()
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Handle "when connected the app connects to it without launching":
         // If launched due to USB attachment, connect immediately in background and exit UI quietly!
-        if (intent?.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-            viewModel.connectUsbDevice()
-            moveTaskToBack(true)
-            finish()
+        if (handleUsbAttachedIntent(intent)) {
             return
         }
+
+        // Auto-refresh and connect to any attached Stream Deck immediately upon app launch!
+        viewModel.connectUsbDevice()
 
         setContent {
             MaterialTheme(

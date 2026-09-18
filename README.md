@@ -23,15 +23,18 @@ Optimized for automotive head units, tablets, and phones.
 ## ✨ Features
 
 - **Direct USB Host Control**: Zero root required. Communicates over raw USB endpoints via the Android USB Host API.
-- **Auto-Detection & Hot-Plugging**: Automatically reconnects and restores active key states on device plug/unplug.
+- **Auto-Detection & Launch Reconnect**: Automatically refreshes and connects to any attached Stream Deck on app open, resume, or boot with progressive retry polling (0s, 0.8s, 1.5s, 3s, 5s) to handle slow-enumerating USB ports on Android head units.
 - **Multi-Device Support**: Full protocol handling across both generations of 15-key hardware:
-  - **Stream Deck V1**: Raw HID output reports (BMP display format).
-  - **Stream Deck V2 / MK.2**: Native JPEG bulk-transfer pipeline.
-- **Dynamic LCD Key Display**: Send static icons, dynamic telemetry (speed, media metadata), and animated status indicators to keys.
+  - **Stream Deck V1** (PID: `0x0060`): Raw HID output reports (BMP display format).
+  - **Stream Deck V2 / MK.2** (PID: `0x006D`, `0x0080`): Native JPEG bulk-transfer pipeline.
+- **Dynamic LCD Key Display**: Dual-tone gradient backings, specular gloss curves, radial rim glows, dark translucent text pills, 30+ vivid color options, and custom PNG/JPG image assets with live in-app preview.
+- **3-Tier Background App Shortcuts**: Launches apps even when the Stream Deck app is minimized or closed (`PendingIntent` + `FLAG_ACTIVITY_NEW_TASK` + car stereo `monkey` shell fallback).
+- **Desktop Configuration Web Panel**: Built-in HTTP server listening on port `8080` for drag-and-drop key configuration from any laptop, Mac, or PC on your car's Wi-Fi or hotspot.
+- **360° Deck Orientation**: Rotate 0°, 90°, 180°, or 270° with dynamic LCD image rotation and key coordinate mapping.
 - **Automotive-First Architecture**:
-  - Auto-start on boot / vehicle ignition.
+  - Auto-start on boot / vehicle ignition (`BOOT_COMPLETED`, `QUICKBOOT_POWERON`).
+  - Quiet background connection on USB attachment without stealing focus from navigation or CarPlay.
   - Low-overhead background service designed to survive aggressive OEM memory managers.
-  - Native integration with FYT and UIS7862 custom broadcast intents.
 
 ---
 
@@ -40,7 +43,8 @@ Optimized for automotive head units, tablets, and phones.
 | Model | Keys | Protocol | Image Format | Status |
 | :--- | :---: | :---: | :---: | :---: |
 | **Stream Deck V1** (PID: `0x0060`) | 15 | HID / Feature Reports | BMP | Supported |
-| **Stream Deck MK.2** (PID: `0x006d`) | 15 | Bulk Transfer | JPEG | Supported |
+| **Stream Deck V2** (PID: `0x006D`) | 15 | Bulk Transfer | JPEG | Supported |
+| **Stream Deck MK.2** (PID: `0x0080`) | 15 | Bulk Transfer | JPEG | Supported |
 | **Stream Deck Mini** | 6 | — | — | Planned |
 | **Stream Deck XL** | 32 | — | — | Planned |
 
@@ -61,7 +65,14 @@ Optimized for automotive head units, tablets, and phones.
 - USB-OTG cable or dedicated vehicle USB port
 
 ### Installation
-1. Download the latest release `.apk` from the [Releases](https://github.com/) page.
-2. Install via ADB or local file manager:
-   ```bash
-   adb install -r StreamDeckAndroid-release.apk
+1. Download the latest **`StreamDeck-v1.0.1.apk`** from the [Releases](https://github.com/wyattissoquiet-byte/StreamDeck-Android/releases/latest) page.
+2. Install on your Android device or car stereo head unit.
+3. Plug in your 15-key Elgato Stream Deck via USB.
+4. Grant the USB permission prompt (select *"Always open Stream Deck when this USB device is connected"*).
+5. *(Optional)* Connect your PC/Mac to the car's Wi-Fi and open `http://<head-unit-ip>:8080` to configure keys visually!
+
+---
+
+## 📄 License
+
+MIT License - free for personal and commercial use.
