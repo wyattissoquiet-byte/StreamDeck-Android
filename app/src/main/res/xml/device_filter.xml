@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Elgato Stream Deck (Vendor ID: 4057 / 0x0FD9) -->
+    <!-- Stream Deck Original V1 (0x0060 / 96) -->
+    <usb-device vendor-id="4057" product-id="96" />
+    <!-- Stream Deck Original V2 (0x006D / 109) -->
+    <usb-device vendor-id="4057" product-id="109" />
+    <!-- Stream Deck MK.2 (0x0080 / 128) -->
+    <usb-device vendor-id="4057" product-id="128" />
+    <!-- Stream Deck Mini (0x0063 / 99 & 0x0090 / 144) -->
+    <usb-device vendor-id="4057" product-id="99" />
+    <usb-device vendor-id="4057" product-id="144" />
+    <!-- Stream Deck XL (0x006C / 108 & 0x008F / 143) -->
+    <usb-device vendor-id="4057" product-id="108" />
+    <usb-device vendor-id="4057" product-id="143" />
+    <!-- Stream Deck Plus (0x0084 / 132) -->
+    <usb-device vendor-id="4057" product-id="132" />
+    <!-- Generic catch-all for any Elgato USB device -->
+    <usb-device vendor-id="4057" />
+</resources>
