@@ -4,17 +4,66 @@ import java.util.UUID
 
 enum class ActionType {
     NONE,
+
+    // System & Navigation
+    SYSTEM_HOME,
+    SYSTEM_BACK,
+    SYSTEM_RECENTS,
+    SYSTEM_NOTIFICATIONS,
+    SYSTEM_QUICK_SETTINGS,
+    SYSTEM_LOCK_SCREEN,
+    SYSTEM_POWER_DIALOG,
+    SYSTEM_SPLIT_SCREEN,
+    SYSTEM_SCREENSHOT,
+
+    // Screen Touch & Gesture Automation
+    SIMULATED_TAP,
+    SIMULATED_SWIPE,
+    SIMULATED_SWIPE_UP,
+    SIMULATED_SWIPE_DOWN,
+    SIMULATED_SWIPE_LEFT,
+    SIMULATED_SWIPE_RIGHT,
+
+    // Media & Audio Controls
     MEDIA_PLAY_PAUSE,
+    MEDIA_PLAY,
+    MEDIA_PAUSE,
+    MEDIA_STOP,
     MEDIA_NEXT,
     MEDIA_PREV,
+    MEDIA_FAST_FORWARD,
+    MEDIA_REWIND,
     VOLUME_UP,
     VOLUME_DOWN,
     VOLUME_MUTE_TOGGLE,
+
+    // Brightness & Display
+    BRIGHTNESS_UP,
+    BRIGHTNESS_DOWN,
+    SCREEN_OFF,
+
+    // Settings Shortcuts
+    SETTINGS_BLUETOOTH,
+    SETTINGS_WIFI,
+    SETTINGS_SOUND,
+    SETTINGS_DISPLAY,
+    SETTINGS_DATE_TIME,
+    SETTINGS_LOCATION,
+    SETTINGS_APPS,
+    SETTINGS_MAIN,
+
+    // Tools & Vehicle
+    TORCH_TOGGLE,
+    OPEN_URL,
+    VOICE_ASSISTANT,
+    DIAL_PHONE,
+    LAUNCH_APP,
+    SHELL_COMMAND,
+
+    // Page Navigation
     NEXT_PAGE,
     PREV_PAGE,
-    GOTO_PAGE,
-    LAUNCH_APP,
-    SHELL_COMMAND
+    GOTO_PAGE
 }
 
 data class DeckAction(
@@ -28,7 +77,13 @@ data class DeckAction(
     val targetAppName: String = "",
     val shellCommand: String = "",
     val targetPageIndex: Int = 0,
-    val customImagePath: String = ""
+    val customImagePath: String = "",
+    val extraData: String = "",
+    val touchX: Float = 0.5f,
+    val touchY: Float = 0.5f,
+    val touchEndX: Float = 0.5f,
+    val touchEndY: Float = 0.5f,
+    val swipeDurationMs: Long = 300L
 )
 
 data class DeckPage(

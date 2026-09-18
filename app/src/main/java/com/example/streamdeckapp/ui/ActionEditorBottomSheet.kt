@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.streamdeckapp.model.ActionType
 import com.example.streamdeckapp.model.DeckAction
+import com.example.streamdeckapp.service.StreamDeckAccessibilityService
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +55,14 @@ fun ActionEditorBottomSheet(
     var shellCmdText by remember { mutableStateOf(currentAction.shellCommand) }
     var targetPageIdx by remember { mutableStateOf(currentAction.targetPageIndex) }
     var customImagePath by remember { mutableStateOf(currentAction.customImagePath) }
+    var extraDataText by remember { mutableStateOf(currentAction.extraData) }
+    var touchX by remember { mutableStateOf(if (currentAction.touchX > 0f) currentAction.touchX else 0.5f) }
+    var touchY by remember { mutableStateOf(if (currentAction.touchY > 0f) currentAction.touchY else 0.5f) }
+    var touchEndX by remember { mutableStateOf(if (currentAction.touchEndX > 0f) currentAction.touchEndX else 0.5f) }
+    var touchEndY by remember { mutableStateOf(if (currentAction.touchEndY > 0f) currentAction.touchEndY else 0.25f) }
+    var swipeDurationMs by remember { mutableStateOf(if (currentAction.swipeDurationMs > 0L) currentAction.swipeDurationMs else 300L) }
+    var showFullscreenMapper by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf(getCategoryForType(currentAction.type)) }
     var hexInputText by remember { mutableStateOf("#" + ((backgroundColor and 0x00FFFFFF).toString(16).padStart(6, '0').uppercase())) }
 
     val context = LocalContext.current
@@ -163,16 +172,38 @@ fun ActionEditorBottomSheet(
             HorizontalDivider()
 
             // ==========================================
-            // ACTION TYPE SELECTOR
+            // ACTION CATEGORY & TYPE SELECTOR
             // ==========================================
-            Text("Action Type", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("Action Category", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(ActionCategory.values()) { category ->
+                    val isCatSelected = selectedCategory == category
+                    FilterChip(
+                        selected = isCatSelected,
+                        onClick = {
+                            selectedCategory = category
+                            val actionsInCat = getActionsForCategory(category)
+                            if (selectedType !in actionsInCat && actionsInCat.isNotEmpty()) {
+                                selectedType = actionsInCat.first()
+                            }
+                        },
+                        label = { Text("${category.icon} ${category.title}", fontSize = 12.sp, fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal) }
+                    )
+                }
+            }
+
+            Text("Select Action", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                ActionType.values().forEach { type ->
+                getActionsForCategory(selectedCategory).forEach { type ->
                     val isSelected = selectedType == type
                     val color = getActionColor(type)
 
@@ -180,16 +211,51 @@ fun ActionEditorBottomSheet(
                         selected = isSelected,
                         onClick = {
                             selectedType = type
-                            if (labelText.isBlank()) {
+                            if (labelText.isBlank() || labelText.matches(Regex("^[A-Z0-9 +/\\-]+$"))) {
                                 labelText = when (type) {
+                                    ActionType.SYSTEM_HOME -> "HOME"
+                                    ActionType.SYSTEM_BACK -> "BACK"
+                                    ActionType.SYSTEM_RECENTS -> "RECENTS"
+                                    ActionType.SYSTEM_NOTIFICATIONS -> "NOTIF"
+                                    ActionType.SYSTEM_QUICK_SETTINGS -> "QUICK"
+                                    ActionType.SYSTEM_LOCK_SCREEN -> "LOCK"
+                                    ActionType.SYSTEM_POWER_DIALOG -> "POWER"
+                                    ActionType.SYSTEM_SPLIT_SCREEN -> "SPLIT"
+                                    ActionType.SYSTEM_SCREENSHOT -> "SHOT"
+                                    ActionType.SIMULATED_TAP -> "TAP"
+                                    ActionType.SIMULATED_SWIPE -> "SWIPE"
+                                    ActionType.SIMULATED_SWIPE_UP -> "SWIPE UP"
+                                    ActionType.SIMULATED_SWIPE_DOWN -> "SWIPE DN"
+                                    ActionType.SIMULATED_SWIPE_LEFT -> "SWIPE LT"
+                                    ActionType.SIMULATED_SWIPE_RIGHT -> "SWIPE RT"
                                     ActionType.MEDIA_PLAY_PAUSE -> "PLAY/PAUSE"
+                                    ActionType.MEDIA_PLAY -> "PLAY"
+                                    ActionType.MEDIA_PAUSE -> "PAUSE"
+                                    ActionType.MEDIA_STOP -> "STOP"
                                     ActionType.MEDIA_NEXT -> "NEXT"
                                     ActionType.MEDIA_PREV -> "PREV"
+                                    ActionType.MEDIA_FAST_FORWARD -> "FWD"
+                                    ActionType.MEDIA_REWIND -> "RWD"
                                     ActionType.VOLUME_UP -> "VOL +"
                                     ActionType.VOLUME_DOWN -> "VOL -"
                                     ActionType.VOLUME_MUTE_TOGGLE -> "MUTE"
-                                    ActionType.NEXT_PAGE -> "NEXT PAGE"
-                                    ActionType.PREV_PAGE -> "PREV PAGE"
+                                    ActionType.BRIGHTNESS_UP -> "BRT +"
+                                    ActionType.BRIGHTNESS_DOWN -> "BRT -"
+                                    ActionType.SCREEN_OFF -> "SLEEP"
+                                    ActionType.SETTINGS_BLUETOOTH -> "BT"
+                                    ActionType.SETTINGS_WIFI -> "WIFI"
+                                    ActionType.SETTINGS_SOUND -> "SOUND"
+                                    ActionType.SETTINGS_DISPLAY -> "DISP"
+                                    ActionType.SETTINGS_DATE_TIME -> "TIME"
+                                    ActionType.SETTINGS_LOCATION -> "GPS"
+                                    ActionType.SETTINGS_APPS -> "APPS"
+                                    ActionType.SETTINGS_MAIN -> "SETTINGS"
+                                    ActionType.TORCH_TOGGLE -> "TORCH"
+                                    ActionType.OPEN_URL -> "WEB"
+                                    ActionType.VOICE_ASSISTANT -> "VOICE"
+                                    ActionType.DIAL_PHONE -> "PHONE"
+                                    ActionType.NEXT_PAGE -> "NEXT"
+                                    ActionType.PREV_PAGE -> "PREV"
                                     else -> ""
                                 }
                             }
@@ -206,8 +272,123 @@ fun ActionEditorBottomSheet(
                 }
             }
 
-            // Dynamic parameter inputs
+            // ==========================================
+            // DYNAMIC ACTION CONFIGURATION PANELS
+            // ==========================================
             when (selectedType) {
+                ActionType.SIMULATED_TAP,
+                ActionType.SIMULATED_SWIPE,
+                ActionType.SIMULATED_SWIPE_UP,
+                ActionType.SIMULATED_SWIPE_DOWN,
+                ActionType.SIMULATED_SWIPE_LEFT,
+                ActionType.SIMULATED_SWIPE_RIGHT -> {
+                    Surface(
+                        color = Color(0xFF161824),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2C324A)),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Screen Gesture Automation",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.5.sp,
+                                    color = Color(0xFF00E5FF)
+                                )
+                                Surface(
+                                    color = Color(0xFF263238),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = if (selectedType == ActionType.SIMULATED_TAP) "TAP" else "SWIPE",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF80D8FF),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            // Prominent Fullscreen Mapper Trigger Button
+                            Button(
+                                onClick = { showFullscreenMapper = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 10.dp)
+                            ) {
+                                Icon(Icons.Default.TouchApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("🎯 Open Fullscreen Screen Mapper", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+
+                            // Coordinate Readout
+                            val widthPx = context.resources.displayMetrics.widthPixels
+                            val heightPx = context.resources.displayMetrics.heightPixels
+                            val readout = if (selectedType == ActionType.SIMULATED_TAP) {
+                                "Target: (${(touchX * widthPx).toInt()}px, ${(touchY * heightPx).toInt()}px) · ${(touchX * 100).toInt()}% X, ${(touchY * 100).toInt()}% Y"
+                            } else {
+                                "Path: (${(touchX * widthPx).toInt()}px, ${(touchY * heightPx).toInt()}px) ➔ (${(touchEndX * widthPx).toInt()}px, ${(touchEndY * heightPx).toInt()}px) · ${swipeDurationMs}ms"
+                            }
+                            Text(readout, fontSize = 11.5.sp, color = Color(0xFFB0BEC5))
+
+                            // Test gesture on real screen
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        if (selectedType == ActionType.SIMULATED_TAP) {
+                                            StreamDeckAccessibilityService.simulateTap(touchX, touchY, context.resources.displayMetrics)
+                                        } else {
+                                            StreamDeckAccessibilityService.simulateSwipe(
+                                                touchX, touchY, touchEndX, touchEndY, swipeDurationMs, context.resources.displayMetrics
+                                            )
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Test on Screen", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ActionType.OPEN_URL -> {
+                    Text("Website URL or App Deep Link", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    OutlinedTextField(
+                        value = extraDataText,
+                        onValueChange = { extraDataText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("https://maps.google.com or waze://") },
+                        leadingIcon = { Icon(Icons.Default.Language, contentDescription = null) }
+                    )
+                }
+
+                ActionType.DIAL_PHONE -> {
+                    Text("Phone Number to Dial", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    OutlinedTextField(
+                        value = extraDataText,
+                        onValueChange = { extraDataText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("e.g. 555-123-4567") },
+                        leadingIcon = { Icon(Icons.Default.Call, contentDescription = null) }
+                    )
+                }
+
                 ActionType.LAUNCH_APP -> {
                     Text("Select Application to Launch", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     ExposedDropdownMenuBox(
@@ -416,7 +597,13 @@ fun ActionEditorBottomSheet(
                             targetAppName = selectedAppName,
                             shellCommand = shellCmdText,
                             targetPageIndex = targetPageIdx,
-                            customImagePath = customImagePath
+                            customImagePath = customImagePath,
+                            extraData = extraDataText,
+                            touchX = touchX,
+                            touchY = touchY,
+                            touchEndX = touchEndX,
+                            touchEndY = touchEndY,
+                            swipeDurationMs = swipeDurationMs
                         )
                         onSaveAction(updated)
                         onDismiss()
@@ -427,7 +614,75 @@ fun ActionEditorBottomSheet(
             }
         }
     }
+
+    // ==========================================
+    // INTERACTIVE FULLSCREEN GESTURE MAPPER DIALOG
+    // ==========================================
+    if (showFullscreenMapper) {
+        FullscreenTouchMapperDialog(
+            initialType = selectedType,
+            initialTouchX = touchX,
+            initialTouchY = touchY,
+            initialTouchEndX = touchEndX,
+            initialTouchEndY = touchEndY,
+            initialDurationMs = swipeDurationMs,
+            onDismiss = { showFullscreenMapper = false },
+            onConfirm = { newType, nx, ny, nex, ney, dur, suggestedLabel ->
+                selectedType = newType
+                touchX = nx
+                touchY = ny
+                touchEndX = nex
+                touchEndY = ney
+                swipeDurationMs = dur
+                if (labelText.isBlank() || labelText.startsWith("TAP") || labelText.startsWith("SWIPE")) {
+                    labelText = suggestedLabel
+                }
+                showFullscreenMapper = false
+            }
+        )
+    }
 }
+
+enum class ActionCategory(val title: String, val icon: String) {
+    NAVIGATION("System & Nav", "📱"),
+    GESTURES("Touch & Swipe", "👆"),
+    MEDIA("Media & Audio", "🎵"),
+    DISPLAY("Display", "☀️"),
+    SETTINGS("Settings", "⚙️"),
+    TOOLS("Tools", "🛠️"),
+    PAGES("Pages", "📄")
+}
+
+fun getCategoryForType(type: ActionType): ActionCategory {
+    return when (type) {
+        ActionType.SYSTEM_HOME, ActionType.SYSTEM_BACK, ActionType.SYSTEM_RECENTS,
+        ActionType.SYSTEM_NOTIFICATIONS, ActionType.SYSTEM_QUICK_SETTINGS, ActionType.SYSTEM_LOCK_SCREEN,
+        ActionType.SYSTEM_POWER_DIALOG, ActionType.SYSTEM_SPLIT_SCREEN, ActionType.SYSTEM_SCREENSHOT -> ActionCategory.NAVIGATION
+
+        ActionType.SIMULATED_TAP, ActionType.SIMULATED_SWIPE, ActionType.SIMULATED_SWIPE_UP,
+        ActionType.SIMULATED_SWIPE_DOWN, ActionType.SIMULATED_SWIPE_LEFT, ActionType.SIMULATED_SWIPE_RIGHT -> ActionCategory.GESTURES
+
+        ActionType.MEDIA_PLAY_PAUSE, ActionType.MEDIA_PLAY, ActionType.MEDIA_PAUSE, ActionType.MEDIA_STOP,
+        ActionType.MEDIA_NEXT, ActionType.MEDIA_PREV, ActionType.MEDIA_FAST_FORWARD, ActionType.MEDIA_REWIND,
+        ActionType.VOLUME_UP, ActionType.VOLUME_DOWN, ActionType.VOLUME_MUTE_TOGGLE -> ActionCategory.MEDIA
+
+        ActionType.BRIGHTNESS_UP, ActionType.BRIGHTNESS_DOWN, ActionType.SCREEN_OFF -> ActionCategory.DISPLAY
+
+        ActionType.SETTINGS_BLUETOOTH, ActionType.SETTINGS_WIFI, ActionType.SETTINGS_SOUND,
+        ActionType.SETTINGS_DISPLAY, ActionType.SETTINGS_DATE_TIME, ActionType.SETTINGS_LOCATION,
+        ActionType.SETTINGS_APPS, ActionType.SETTINGS_MAIN -> ActionCategory.SETTINGS
+
+        ActionType.TORCH_TOGGLE, ActionType.OPEN_URL, ActionType.VOICE_ASSISTANT,
+        ActionType.DIAL_PHONE, ActionType.LAUNCH_APP, ActionType.SHELL_COMMAND -> ActionCategory.TOOLS
+
+        ActionType.NEXT_PAGE, ActionType.PREV_PAGE, ActionType.GOTO_PAGE, ActionType.NONE -> ActionCategory.PAGES
+    }
+}
+
+fun getActionsForCategory(category: ActionCategory): List<ActionType> {
+    return ActionType.values().filter { getCategoryForType(it) == category }
+}
+
 
 @Composable
 fun LiveButtonPreview(

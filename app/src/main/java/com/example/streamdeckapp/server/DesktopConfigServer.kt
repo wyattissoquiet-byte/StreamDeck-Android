@@ -186,6 +186,12 @@ class DesktopConfigServer(
                 actionObj.put("targetPackageName", action.targetPackageName)
                 actionObj.put("targetAppName", action.targetAppName)
                 actionObj.put("targetPageIndex", action.targetPageIndex)
+                actionObj.put("extraData", action.extraData)
+                actionObj.put("touchX", action.touchX)
+                actionObj.put("touchY", action.touchY)
+                actionObj.put("touchEndX", action.touchEndX)
+                actionObj.put("touchEndY", action.touchEndY)
+                actionObj.put("swipeDurationMs", action.swipeDurationMs)
                 slotsArray.put(actionObj)
             }
             pageObj.put("slots", slotsArray)
@@ -226,7 +232,13 @@ class DesktopConfigServer(
                         targetPackageName = actionObj.optString("targetPackageName", ""),
                         targetAppName = actionObj.optString("targetAppName", ""),
                         shellCommand = actionObj.optString("shellCommand", ""),
-                        targetPageIndex = actionObj.optInt("targetPageIndex", 0)
+                        targetPageIndex = actionObj.optInt("targetPageIndex", 0),
+                        extraData = actionObj.optString("extraData", ""),
+                        touchX = actionObj.optDouble("touchX", 0.5).toFloat(),
+                        touchY = actionObj.optDouble("touchY", 0.5).toFloat(),
+                        touchEndX = actionObj.optDouble("touchEndX", 0.5).toFloat(),
+                        touchEndY = actionObj.optDouble("touchEndY", 0.25).toFloat(),
+                        swipeDurationMs = actionObj.optLong("swipeDurationMs", 300L)
                     )
                 }
                 pages.add(com.example.streamdeckapp.model.DeckPage(id = pageId, name = pageName, slots = slots))
@@ -339,22 +351,75 @@ class DesktopConfigServer(
       <label>Action Type</label>
       <select id="editType" class="form-control">
         <option value="NONE">None / Empty</option>
-        <option value="MEDIA_PLAY_PAUSE">Media Play/Pause</option>
-        <option value="MEDIA_NEXT">Next Track</option>
-        <option value="MEDIA_PREV">Previous Track</option>
-        <option value="VOLUME_UP">Volume Up</option>
-        <option value="VOLUME_DOWN">Volume Down</option>
-        <option value="VOLUME_MUTE_TOGGLE">Mute Toggle</option>
-        <option value="NEXT_PAGE">Next Page</option>
-        <option value="PREV_PAGE">Previous Page</option>
-        <option value="GOTO_PAGE">Go To Page</option>
-        <option value="LAUNCH_APP">Launch App</option>
-        <option value="SHELL_COMMAND">Shell Command</option>
+        <optgroup label="System & Navigation">
+          <option value="SYSTEM_HOME">Go Home</option>
+          <option value="SYSTEM_BACK">Back</option>
+          <option value="SYSTEM_RECENTS">Recent Apps</option>
+          <option value="SYSTEM_NOTIFICATIONS">Notifications</option>
+          <option value="SYSTEM_QUICK_SETTINGS">Quick Settings</option>
+          <option value="SYSTEM_LOCK_SCREEN">Lock Screen</option>
+          <option value="SYSTEM_POWER_DIALOG">Power Menu</option>
+          <option value="SYSTEM_SPLIT_SCREEN">Split Screen</option>
+          <option value="SYSTEM_SCREENSHOT">Screenshot</option>
+        </optgroup>
+        <optgroup label="Screen Gestures">
+          <option value="SIMULATED_TAP">Simulated Screen Tap</option>
+          <option value="SIMULATED_SWIPE">Simulated Screen Swipe</option>
+          <option value="SIMULATED_SWIPE_UP">Swipe Up</option>
+          <option value="SIMULATED_SWIPE_DOWN">Swipe Down</option>
+          <option value="SIMULATED_SWIPE_LEFT">Swipe Left</option>
+          <option value="SIMULATED_SWIPE_RIGHT">Swipe Right</option>
+        </optgroup>
+        <optgroup label="Media & Audio">
+          <option value="MEDIA_PLAY_PAUSE">Media Play/Pause</option>
+          <option value="MEDIA_PLAY">Media Play</option>
+          <option value="MEDIA_PAUSE">Media Pause</option>
+          <option value="MEDIA_STOP">Media Stop</option>
+          <option value="MEDIA_NEXT">Next Track</option>
+          <option value="MEDIA_PREV">Previous Track</option>
+          <option value="MEDIA_FAST_FORWARD">Fast Forward</option>
+          <option value="MEDIA_REWIND">Rewind</option>
+          <option value="VOLUME_UP">Volume Up</option>
+          <option value="VOLUME_DOWN">Volume Down</option>
+          <option value="VOLUME_MUTE_TOGGLE">Mute Toggle</option>
+        </optgroup>
+        <optgroup label="Display & Brightness">
+          <option value="BRIGHTNESS_UP">Brightness Up</option>
+          <option value="BRIGHTNESS_DOWN">Brightness Down</option>
+          <option value="SCREEN_OFF">Screen Sleep</option>
+        </optgroup>
+        <optgroup label="Settings Shortcuts">
+          <option value="SETTINGS_BLUETOOTH">Bluetooth Settings</option>
+          <option value="SETTINGS_WIFI">Wi-Fi Settings</option>
+          <option value="SETTINGS_SOUND">Sound Settings</option>
+          <option value="SETTINGS_DISPLAY">Display Settings</option>
+          <option value="SETTINGS_DATE_TIME">Date & Time</option>
+          <option value="SETTINGS_LOCATION">GPS / Location</option>
+          <option value="SETTINGS_APPS">Installed Apps</option>
+          <option value="SETTINGS_MAIN">Android Settings</option>
+        </optgroup>
+        <optgroup label="Tools & Vehicle">
+          <option value="TORCH_TOGGLE">Flashlight / Torch</option>
+          <option value="OPEN_URL">Open Web URL</option>
+          <option value="VOICE_ASSISTANT">Voice Assistant</option>
+          <option value="DIAL_PHONE">Dial Phone</option>
+          <option value="LAUNCH_APP">Launch App</option>
+          <option value="SHELL_COMMAND">Shell Command</option>
+        </optgroup>
+        <optgroup label="Pages">
+          <option value="NEXT_PAGE">Next Page</option>
+          <option value="PREV_PAGE">Previous Page</option>
+          <option value="GOTO_PAGE">Go To Page</option>
+        </optgroup>
       </select>
     </div>
     <div class="form-group">
       <label>Button Label</label>
       <input type="text" id="editLabel" class="form-control" placeholder="Button text...">
+    </div>
+    <div class="form-group" id="groupExtra">
+      <label>URL / Phone / Extra Data</label>
+      <input type="text" id="editExtra" class="form-control" placeholder="URL or Phone number...">
     </div>
     <div class="form-group" id="groupPackage">
       <label>App Package Name</label>
@@ -437,6 +502,7 @@ function openModal(slotIdx) {
   document.getElementById('modalTitle').innerText = 'Configure Key #' + (slotIdx + 1);
   document.getElementById('editType').value = action.type || 'NONE';
   document.getElementById('editLabel').value = action.label || '';
+  document.getElementById('editExtra').value = action.extraData || '';
   document.getElementById('editPackage').value = action.targetPackageName || '';
   document.getElementById('editCmd').value = action.shellCommand || '';
   document.getElementById('modal').style.display = 'flex';
@@ -450,6 +516,7 @@ function saveSlot() {
   const page = profile.pages[profile.activePageIndex];
   const type = document.getElementById('editType').value;
   const label = document.getElementById('editLabel').value;
+  const extra = document.getElementById('editExtra').value;
   const pkg = document.getElementById('editPackage').value;
   const cmd = document.getElementById('editCmd').value;
 
@@ -457,6 +524,7 @@ function saveSlot() {
     ...page.slots[currentSlot],
     type: type,
     label: label,
+    extraData: extra,
     targetPackageName: pkg,
     shellCommand: cmd
   };
