@@ -36,6 +36,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val serverUrl = MutableStateFlow("")
 
     val installedApps = MutableStateFlow<List<InstalledAppInfo>>(emptyList())
+    val isAccessibilityEnabled = MutableStateFlow(false)
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -73,6 +74,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         loadInstalledApps()
         startAndBindService()
+        refreshAccessibilityStatus()
+    }
+
+    fun refreshAccessibilityStatus() {
+        isAccessibilityEnabled.value = com.example.streamdeckapp.service.StreamDeckAccessibilityService.checkPermission(getApplication())
     }
 
     private fun startAndBindService() {

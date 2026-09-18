@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">StreamDeckApp</string>
+    <string name="accessibility_service_description">Allows Stream Deck to launch application shortcuts directly while in the background or minimized.</string>
 </resources>

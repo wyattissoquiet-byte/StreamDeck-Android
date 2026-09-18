@@ -11,6 +11,7 @@ import android.view.KeyEvent
 import android.widget.Toast
 import com.example.streamdeckapp.model.ActionType
 import com.example.streamdeckapp.model.DeckAction
+import com.example.streamdeckapp.service.StreamDeckAccessibilityService
 
 class ActionHandler(
     private val context: Context,
@@ -115,6 +116,14 @@ class ActionHandler(
             val pm = context.packageManager
             val launchIntent = pm.getLaunchIntentForPackage(packageName)
             if (launchIntent != null) {
+                // Method 0: AccessibilityService background launch (completely exempt from Android background activity launch restrictions)
+                if (StreamDeckAccessibilityService.isAccessibilityServiceEnabled()) {
+                    val launched = StreamDeckAccessibilityService.launchAppFromBackground(launchIntent)
+                    if (launched) {
+                        return
+                    }
+                }
+
                 launchIntent.addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED or

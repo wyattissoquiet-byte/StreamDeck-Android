@@ -28,7 +28,7 @@ Optimized for automotive head units, tablets, and phones.
   - **Stream Deck V1** (PID: `0x0060`): Raw HID output reports (BMP display format).
   - **Stream Deck V2 / MK.2** (PID: `0x006D`, `0x0080`): Native JPEG bulk-transfer pipeline.
 - **Dynamic LCD Key Display**: Dual-tone gradient backings, specular gloss curves, radial rim glows, dark translucent text pills, 30+ vivid color options, and custom PNG/JPG image assets with live in-app preview.
-- **3-Tier Background App Shortcuts**: Launches apps even when the Stream Deck app is minimized or closed (`PendingIntent` + `FLAG_ACTIVITY_NEW_TASK` + car stereo `monkey` shell fallback).
+- **Background App Shortcuts via Accessibility Service**: Privileged background app launching completely exempt from Android 10+ Background Activity Launch (BAL) restrictions via an integrated Accessibility Service, with multi-tier fallback (`PendingIntent` + `FLAG_ACTIVITY_NEW_TASK` + car stereo `monkey` shell fallback).
 - **Desktop Configuration Web Panel**: Built-in HTTP server listening on port `8080` for drag-and-drop key configuration from any laptop, Mac, or PC on your car's Wi-Fi or hotspot.
 - **360° Deck Orientation**: Rotate 0°, 90°, 180°, or 270° with dynamic LCD image rotation and key coordinate mapping.
 - **Automotive-First Architecture**:

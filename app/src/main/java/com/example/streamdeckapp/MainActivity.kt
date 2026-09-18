@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Automatically refresh to see if a deck is connected when opened/resumed
         viewModel.connectUsbDevice()
+        viewModel.refreshAccessibilityStatus()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +86,7 @@ class MainActivity : ComponentActivity() {
         viewModel.connectUsbDevice()
 
         setContent {
+            val context = androidx.compose.ui.platform.LocalContext.current
             MaterialTheme(
                 colorScheme = darkColorScheme(
                     primary = Color(0xFF7C4DFF),
@@ -102,6 +104,7 @@ class MainActivity : ComponentActivity() {
                 val connectedDeviceName by viewModel.connectedDeviceName.collectAsState()
                 val installedApps by viewModel.installedApps.collectAsState()
                 val serverUrl by viewModel.serverUrl.collectAsState()
+                val isAccessibilityEnabled by viewModel.isAccessibilityEnabled.collectAsState()
 
                 var selectedTab by remember { mutableStateOf(0) } // 0 = Virtual Grid, 1 = Pages Manager
                 var editingSlotIndex by remember { mutableStateOf<Int?>(null) }
@@ -186,14 +189,73 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
                             .background(MaterialTheme.colorScheme.background)
                     ) {
-                        when (selectedTab) {
-                            0 -> {
+                        if (!isAccessibilityEnabled) {
+                            Surface(
+                                color = Color(0xFF261D05),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bolt,
+                                            contentDescription = "Accessibility",
+                                            tint = Color(0xFFFFB300),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Enable Accessibility for background app shortcuts",
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFFFFE082),
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            context.startActivity(intent)
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFFFB300),
+                                            contentColor = Color.Black
+                                        )
+                                    ) {
+                                        Text("Enable", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            when (selectedTab) {
+                                0 -> {
                                 val currentPage = activeProfile?.pages?.getOrNull(activeProfile?.activePageIndex ?: 0)
                                 VirtualGridScreen(
                                     currentPage = currentPage,
@@ -242,3 +304,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+}
+

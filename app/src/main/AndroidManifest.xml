@@ -48,6 +48,19 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
+        <!-- Accessibility Service to allow unrestricted background app launching from Stream Deck keypresses -->
+        <service
+            android:name=".service.StreamDeckAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
         <!-- Auto-start service on car boot -->
         <receiver
             android:name=".receiver.StreamDeckBootReceiver"
